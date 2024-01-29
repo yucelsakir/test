@@ -226,30 +226,40 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // Giriş yapma fonksiyonu
-  Future<void> _login() async {
+  void _login() async {
     if (_formKey.currentState!.validate()) {
       // Kullanıcı verilerini doğrula ve giriş yap
       final username = _usernameController.text;
       final password = _passwordController.text;
-      final response = await http.post(
+      final response = await http.get(
         // API isteği yap
         Uri.parse('http://localhost:3000/kullanicigetir'), // API'nizin URL'si
-        body: jsonEncode({
-          // JSON verisini gönder
-          'username': username,
-          'password': password,
-        }),
       );
-
-      final result = User.fromJson(
-          jsonDecode(response.body)); // JSON verisini User sınıfına dönüştür
-      if (result.kullaniciAdi == username && result.sifre == password) {
+      List<Kullanici> users = []; // User nesnelerini tutacak bir liste tanımla
+      for (var user in jsonDecode(response.body)) {
+        // json verisindeki her kullanıcı için
+        users.add(
+            Kullanici.fromJson(user)); // User nesnesi oluştur ve listeye ekle
+      }
+      Kullanici?
+          result; // giriş yapacak User nesnesini tutacak bir değişken tanımla
+      for (var user in users) {
+        // users listesindeki her kullanıcı için
+        if (user.kullaniciAdi == username && user.sifre == password) {
+          // eğer kullanıcı adı ve şifre eşleşiyorsa
+          result = user; // result değişkenine User nesnesini ata
+          break; // döngüden çık
+        }
+      }
+      if (result != null) {
+        // eğer result değişkeni null değilse
         // Giriş başarılı, yönlendirme yap
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => AnaMenu()),
         );
       } else {
+        // eğer result değişkeni null ise
         // Giriş başarısız, hata mesajı göster
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -259,8 +269,4 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
   }
-}
-
-class User {
-  static fromJson(jsonDecode) {}
 }
