@@ -4,10 +4,9 @@ import 'password_reset.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-TextEditingController username = TextEditingController();
-TextEditingController password = TextEditingController();
-final _formKey = GlobalKey<FormState>();
+import 'dart:convert'; // JSON verilerini işlemek için
+import 'package:http/http.dart' as http; // API istekleri yapmak için
+import 'models/user_model.dart'; // User sınıfını içe aktar
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -17,6 +16,10 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+
   bool _passwordInVisible = true;
   final _inputDecoration = const InputDecoration(
     filled: true,
@@ -28,7 +31,7 @@ class _LoginPageState extends State<LoginPage> {
     labelStyle: TextStyle(color: Colors.black),
     border: OutlineInputBorder(),
   );
-  static const _errorMessage = "Giriş Bilgileriniz Hatalı";
+  //static const _errorMessage = "Giriş Bilgileriniz Hatalı";
   // Giriş sayfasının görünümünü belirleyen metod
   @override
   Widget build(BuildContext context) {
@@ -93,9 +96,7 @@ class _LoginPageState extends State<LoginPage> {
                     }
                   },
                   // Giriş alanının değerini username değişkenine kaydet
-                  onSaved: (value) {
-                    username.text = value!;
-                  },
+                  controller: _usernameController,
                 ),
               ),
               const SizedBox(height: 10.0),
@@ -131,9 +132,7 @@ class _LoginPageState extends State<LoginPage> {
                     }
                   },
                   // Giriş alanının değerini password değişkenine kaydet
-                  onSaved: (value) {
-                    password.text = value!;
-                  },
+                  controller: _passwordController,
                   cursorColor: Colors.yellow,
                 ),
               ),
@@ -229,51 +228,39 @@ class _LoginPageState extends State<LoginPage> {
   // Giriş yapma fonksiyonu
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      // username.text ve password.text olarak kullanın
-      if (username.text == "a" && password.text == "a") {
-        final SharedPreferences prefs = await SharedPreferences.getInstance();
+      // Kullanıcı verilerini doğrula ve giriş yap
+      final username = _usernameController.text;
+      final password = _passwordController.text;
+      final response = await http.post(
+        // API isteği yap
+        Uri.parse('http://localhost:3000/kullanicigetir'), // API'nizin URL'si
+        body: jsonEncode({
+          // JSON verisini gönder
+          'username': username,
+          'password': password,
+        }),
+      );
 
-        await prefs.setString('kullaniciadi', 'sakir');
-        // Builder widget'ının build metodunu tanımla
-        Builder(
-          builder: (context) {
-            // Navigator.pushReplacement olarak değiştirin
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AnaMenu(),
-              ),
-            );
-            // ekranın altından çıkan bildirim
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Giriş Başarılı"),
-                backgroundColor: Colors.green,
-              ),
-            );
-            // Builder widget'ının child özelliğine bir widget ver
-            return Container();
-          },
+      final result = User.fromJson(
+          jsonDecode(response.body)); // JSON verisini User sınıfına dönüştür
+      if (result.kullaniciAdi == username && result.sifre == password) {
+        // Giriş başarılı, yönlendirme yap
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => AnaMenu()),
         );
       } else {
-        showDialog(
-          barrierDismissible: false,
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text("Hata"),
-              content: const Text(_errorMessage),
-              actions: <Widget>[
-                MaterialButton(
-                  child: const Text("Geri Dön"),
-                  onPressed: () => Navigator.pop(context),
-                )
-              ],
-            );
-          },
+        // Giriş başarısız, hata mesajı göster
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kullanıcı adı veya şifre yanlış'),
+          ),
         );
       }
     }
   }
+}
+
+class User {
+  static fromJson(jsonDecode) {}
 }
