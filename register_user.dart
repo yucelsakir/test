@@ -3,45 +3,58 @@ import 'models/register_model.dart'; // Bu satırı ekledim
 import 'package:http/http.dart' as http; // Bu satırı ekledim
 import 'dart:convert'; // JSON verilerini işlemek için
 
-class KayitEkrani extends StatefulWidget {
-  const KayitEkrani({Key? key, required this.title}) : super(key: key);
+const String apiUrl = 'http://localhost:3000'; // Bu satırı ekledim
 
-  final String title;
+class RegisterUser extends StatefulWidget {
+  const RegisterUser({super.key, required String title});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _KayitEkraniState createState() => _KayitEkraniState();
+  RegisterUserState createState() => RegisterUserState();
 }
 
-class _KayitEkraniState extends State<KayitEkrani> {
+class RegisterUserState extends State<RegisterUser> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController =
-      TextEditingController(); // Adı soyadı widget'ının kontrolcüsü
-  final _emailController =
-      TextEditingController(); // Eposta widget'ının kontrolcüsü
-  final _usernameController =
-      TextEditingController(); // Kullanıcı adı widget'ının kontrolcüsü
-  final _passwordController =
-      TextEditingController(); // Şifre widget'ının kontrolcüsü
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  String? name; // Adı soyadı değeri
-  String? email; // Eposta değeri
-  String? username; // Kullanıcı adı değeri
-  String? password; // Şifre değeri
+  String adi = '';
+  String soyadi = '';
+  String eposta = '';
+  String kullanici_adi = '';
+  String sifre = '';
 
-  @override
-  void dispose() {
-    // Widget'ların kontrolcülerini temizle
-    _nameController.dispose();
-    _emailController.dispose();
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+  Future save() async {
+    // MSSQL API'nin kullanıcı ekleme URL'sini oluştur
+    final Uri url =
+        Uri.parse('$apiUrl/kullanici_ekle'); // Bu satırı değiştirdim
+
+    // POST isteği için verileri hazırla
+    final Map<String, String> data = {
+      'adi': adi,
+      'soyadi': soyadi,
+      'eposta': eposta,
+      'kullanici_adi': kullanici_adi, // Bu satırı değiştirdim
+      'sifre': sifre,
+    };
+
+    // POST isteğini gönder
+    final response = await http.post(url, body: data); // Bu satırı değiştirdim
+
+    // Yanıtı kontrol et
+    if (response.statusCode == 200) {
+      // Yanıt başarılı ise, kullanıcı verilerini al
+      final user = RegisterModel.fromJson(
+          jsonDecode(response.body)); // Bu satırı değiştirdim
+      print('Kullanıcı kaydı başarılı: ${user.toJson()}');
+    } else {
+      // Yanıt başarısız ise, hata mesajı göster
+      print('Kullanıcı kaydı başarısız: ${response.body}');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         leading: const BackButton(
           color: Colors.white,
@@ -80,32 +93,25 @@ class _KayitEkraniState extends State<KayitEkrani> {
                 const SizedBox(height: 16.0),
                 Expanded(
                   child: TextFormField(
-                    controller:
-                        _nameController, // Adı soyadı widget'ının kontrolcüsünü ver
+                    // Adı soyadı widget'ının kontrolcüsünü ver
                     decoration: const InputDecoration(
                       labelText: 'Adı', // Adı soyadı widget'ının etiketini ver
                       border:
                           OutlineInputBorder(), // Adı soyadı widget'ının kenarlığını ver
                     ),
                     validator: (value) {
-                      // Adı soyadı widget'ının doğrulayıcısını ver
-                      if (value == null || value.isEmpty) {
-                        // Eğer değer boşsa
-                        return 'Lütfen adınızı girin'; // Hata mesajı döndür
+                      if (value!.isEmpty) {
+                        return 'Lütfen adınızı giriniz';
                       }
-                      return null; // Değer geçerliyse null döndür
                     },
                     onSaved: (value) {
-                      // Adı soyadı widget'ının kaydedicisi
-                      name = value; // Değeri name değişkenine ata
+                      adi = value!;
                     },
                   ),
                 ),
                 const SizedBox(height: 16.0),
                 Expanded(
                   child: TextFormField(
-                    controller:
-                        _nameController, // Adı soyadı widget'ının kontrolcüsünü ver
                     decoration: const InputDecoration(
                       labelText:
                           'Soyadı', // Adı soyadı widget'ının etiketini ver
@@ -113,64 +119,52 @@ class _KayitEkraniState extends State<KayitEkrani> {
                           OutlineInputBorder(), // Adı soyadı widget'ının kenarlığını ver
                     ),
                     validator: (value) {
-                      // Adı soyadı widget'ının doğrulayıcısını ver
-                      if (value == null || value.isEmpty) {
-                        // Eğer değer boşsa
-                        return 'Lütfen soyadınızı girin'; // Hata mesajı döndür
+                      if (value!.isEmpty) {
+                        return 'Lütfen soyadınızı giriniz';
                       }
-                      return null; // Değer geçerliyse null döndür
                     },
                     onSaved: (value) {
-                      // Adı soyadı widget'ının kaydedicisi
-                      name = value; // Değeri name değişkenine ata
+                      soyadi = value!;
                     },
                   ),
                 ),
                 const SizedBox(height: 16.0),
                 Expanded(
                   child: TextFormField(
-                    controller: _emailController,
                     decoration: const InputDecoration(
                       labelText: 'Eposta',
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Lütfen eposta adresinizi girin';
+                      if (value!.isEmpty) {
+                        return 'Lütfen e-posta adresinizi giriniz';
                       }
-                      if (!value.contains('@')) {
-                        return 'Lütfen geçerli bir eposta adresi girin';
-                      }
-                      return null;
                     },
                     onSaved: (value) {
-                      email = value;
+                      eposta = value!;
                     },
                   ),
                 ),
                 const SizedBox(height: 16.0),
                 Expanded(
                   child: TextFormField(
-                    controller: _usernameController,
                     decoration: const InputDecoration(
                       labelText: 'Kullanıcı Adı',
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Lütfen kullanıcı adınızı girin';
+                      if (value!.isEmpty) {
+                        return 'Lütfen kullanıcı adınızı giriniz';
                       }
-                      return null;
                     },
                     onSaved: (value) {
-                      username = value;
+                      kullanici_adi = value!;
                     },
                   ),
                 ),
                 const SizedBox(height: 16.0),
                 Expanded(
                   child: TextFormField(
-                    controller: _passwordController,
                     decoration: const InputDecoration(
                       labelText: 'Şifre',
                       border: OutlineInputBorder(),
@@ -186,22 +180,21 @@ class _KayitEkraniState extends State<KayitEkrani> {
                       return null;
                     },
                     onSaved: (value) {
-                      password = value;
+                      sifre = value!;
                     },
                   ),
                 ),
                 const SizedBox(height: 16.0),
                 Expanded(
-                  child: ElevatedButton(
-                child: const Text('Kaydet'),
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    _formKey.currentState!.save();
-                    save();
-                  }
-                },
-              )
-                ),
+                    child: ElevatedButton(
+                  child: const Text('Kaydet'),
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      _formKey.currentState!.save();
+                      save();
+                    }
+                  },
+                )),
               ],
             ),
           ),
@@ -210,4 +203,3 @@ class _KayitEkraniState extends State<KayitEkrani> {
     );
   }
 }
-
