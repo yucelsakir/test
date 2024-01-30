@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/models/register_model.dart';
-import 'package:http/http.dart' as http; 
-import 'dart:convert'; 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
+// ignore: use_key_in_widget_constructors
 class RegisterUser extends StatefulWidget {
-  const RegisterUser({super.key, required String title});
-
   @override
   RegisterUserState createState() => RegisterUserState();
 }
@@ -31,12 +30,16 @@ class RegisterUserState extends State<RegisterUser> {
       'sifre': sifre,
     };
 
-    final response = await http.post(url, body: data);
+    // Burada body ve headers parametrelerini ekledik
+    final response = await http.post(url,
+        body: json.encode(data), headers: {'Content-Type': 'application/json'});
 
     if (response.statusCode == 200) {
       final user = RegisterModel.fromJson(jsonDecode(response.body));
+      // ignore: avoid_print
       print('Kullanıcı kaydı başarılı: ${user.toJson()}');
     } else {
+      // ignore: avoid_print
       print('Kullanıcı kaydı başarısız: ${response.body}');
     }
   }
@@ -69,7 +72,7 @@ class RegisterUserState extends State<RegisterUser> {
             padding: const EdgeInsets.all(16.0),
             child: ListView(
               children: <Widget>[
-                Image(
+                const Image(
                   image: AssetImage("lib/images/atik.jpg"),
                   fit: BoxFit.scaleDown,
                   width: 200,
@@ -81,6 +84,7 @@ class RegisterUserState extends State<RegisterUser> {
                     labelText: 'Adı',
                     border: OutlineInputBorder(),
                   ),
+                  // ignore: body_might_complete_normally_nullable
                   validator: (value) {
                     if (value!.isEmpty) {
                       return 'Lütfen adınızı giriniz';
@@ -96,6 +100,7 @@ class RegisterUserState extends State<RegisterUser> {
                     labelText: 'Soyadı',
                     border: OutlineInputBorder(),
                   ),
+                  // ignore: body_might_complete_normally_nullable
                   validator: (value) {
                     if (value!.isEmpty) {
                       return 'Lütfen soyadınızı giriniz';
@@ -111,6 +116,7 @@ class RegisterUserState extends State<RegisterUser> {
                     labelText: 'Eposta',
                     border: OutlineInputBorder(),
                   ),
+                  // ignore: body_might_complete_normally_nullable
                   validator: (value) {
                     if (value!.isEmpty) {
                       return 'Lütfen e-posta adresinizi giriniz';
@@ -126,6 +132,7 @@ class RegisterUserState extends State<RegisterUser> {
                     labelText: 'Kullanıcı Adı',
                     border: OutlineInputBorder(),
                   ),
+                  // ignore: body_might_complete_normally_nullable
                   validator: (value) {
                     if (value!.isEmpty) {
                       return 'Lütfen kullanıcı adınızı giriniz';
@@ -162,6 +169,9 @@ class RegisterUserState extends State<RegisterUser> {
                     if (_formKey.currentState!.validate()) {
                       _formKey.currentState!.save();
                       save();
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(snackBar); // Snackbar'ı gösteriyoruz
+                      Navigator.of(context).pop();
                     }
                   },
                 ),
@@ -173,3 +183,7 @@ class RegisterUserState extends State<RegisterUser> {
     );
   }
 }
+
+const snackBar = SnackBar(
+  content: Text('Kaydınız yapıldı'),
+);
