@@ -15,14 +15,13 @@ class AnaMenu extends StatefulWidget {
 }
 
 String baseUrl = 'http://localhost:3000/';
-int defaultIl = 1;
 
 // ignore: camel_case_types
 class _anaMenuState extends State<AnaMenu> {
   List<CollapsibleItem>? _items;
   List<String>? iller;
   List<String>? ilceler;
-  Widget? _headline; // Headline kısmının tipini Widget olarak değiştir
+  Widget? _headline;
 
   final _userAdController = TextEditingController();
   final _userSoyadController = TextEditingController();
@@ -30,7 +29,7 @@ class _anaMenuState extends State<AnaMenu> {
   final _userAdresController = TextEditingController();
   final _userEpostaController = TextEditingController();
   // int? _selectedIlce; // Seçili ilçe id'sini tutan bir değişken
-  int _selectedIl = 1;
+  int _selectedIl = 0;
   int _selectedIlce = 0;
 
   late SharedPreferences prefs;
@@ -241,19 +240,26 @@ class _anaMenuState extends State<AnaMenu> {
                           ),
                         ),
                         Expanded(
+                          // Child parametresine Padding widgetını verin
                           child: Padding(
-                            padding:
-                                const EdgeInsets.only(left: 50.0, right: 5.0),
+                            // Padding parametresine EdgeInsets.only(left: 50, right: 5) verin
+                            padding: const EdgeInsets.only(left: 50, right: 5),
+                            // Child parametresine FutureBuilder widgetını verin
                             child: FutureBuilder<List<Iller>>(
+                              // Future parametresine getIller fonksiyonunu verin
                               future: getIller(),
+                              // Builder parametresine bir fonksiyon verin
                               builder: (context, snapshot) {
+                                // Eğer snapshot parametresinin verisi varsa
                                 if (snapshot.hasData) {
+                                  // Veriyi DropdownButton widgetına dönüştürün
                                   return DropdownButton<int?>(
-                                    value: _selectedIl,
-                                    items: snapshot.data!.map((il) {
+                                    // Widgetın değerini null olarak belirleyin
+                                    value: null,
+                                    items: snapshot.data!.map((iller) {
                                       return DropdownMenuItem(
-                                        value: il.sehirid,
-                                        child: Text(il.sehiradi!),
+                                        value: iller.sehirid,
+                                        child: Text(iller.sehiradi!),
                                       );
                                     }).toList(),
                                     onChanged: (value) {
@@ -264,6 +270,8 @@ class _anaMenuState extends State<AnaMenu> {
                                     // hint parametresini 'Seçiniz' olarak belirtin
                                     hint: const Text('Seçiniz'),
                                   );
+
+                                  // Eğer snapshot parametresinin verisi yoksa
                                 } else if (snapshot.hasError) {
                                   return Text(
                                       'Bir hata oluştu: ${snapshot.error}');
@@ -295,29 +303,29 @@ class _anaMenuState extends State<AnaMenu> {
                         ),
                         Expanded(
                           child: Padding(
-                            padding:
-                                const EdgeInsets.only(left: 50.0, right: 5.0),
+                            padding: const EdgeInsets.only(left: 50, right: 5),
                             child: FutureBuilder<List<Ilceler>>(
-                              future: getIlceler(),
+                              // Future parametresine getIlceler fonksiyonunu seçili ilin id'si ile verin
+                              future: getIlceler(_selectedIl),
                               builder: (context, snapshot) {
                                 if (snapshot.hasData) {
                                   return DropdownButton<int>(
-                                    value:
-                                        _selectedIlce, // value parametresine _selectedIlce değişkenini verin
+                                    // Value parametresine _selectedIlce değişkenini verin
+                                    value: _selectedIlce,
+                                    // Items parametresinde seçili ile göre ilçeleri filtreleyin
                                     items: snapshot.data!
                                         .where((ilce) =>
-                                            ilce.sehirid ==
-                                            _selectedIl) // Seçilen ile göre ilçeleri filtrele
+                                            ilce.sehirid == _selectedIl)
                                         .map((ilce) {
                                       return DropdownMenuItem(
                                         value: ilce.ilceid,
                                         child: Text(ilce.ilceadi!),
                                       );
                                     }).toList(),
+                                    // OnChanged fonksiyonunda _selectedIlce değişkenini güncelleyin
                                     onChanged: (value) {
                                       setState(() {
-                                        _selectedIlce =
-                                            value!; // onChanged fonksiyonunda _selectedIlce değişkenini güncelleyin
+                                        _selectedIlce = value!;
                                       });
                                     },
                                     hint: const Text('Seçiniz'),
@@ -336,6 +344,7 @@ class _anaMenuState extends State<AnaMenu> {
                         // Diğer widgetlarınızı buraya ekleyebilirsiniz
                       ],
                     ),
+
                     const SizedBox(height: 10.0),
                     Row(
                       children: <Widget>[
@@ -490,41 +499,26 @@ class _anaMenuState extends State<AnaMenu> {
         .text); // Headline kısmının başlangıç değerini Text widget'ı olarak ayarla
   }
 
-  Future<dynamic> makeRequest(String type, String url,
-      [Map<String, dynamic>? params]) async {
-    // İstek tipine göre farklı metodlar kullan
-    switch (type) {
-      case 'GET':
-        // GET isteği yap
-        final response = await http.get(Uri.parse(url));
-        // Yanıtı JSON olarak döndür
-        return json.decode(response.body);
-      case 'POST':
-        // POST isteği yap
-        final response = await http.post(Uri.parse(url), body: params);
-        // Yanıtı JSON olarak döndür
-        return json.decode(response.body);
-      // Diğer istek tipleri için de benzer şekilde yapabilirsiniz
-      default:
-        // Geçersiz istek tipi ise hata fırlat
-        throw Exception('Invalid request type: $type');
-    }
-  }
-
 // Bu fonksiyon, veritabanından iller listesini çeker ve Future olarak döndürür
   Future<List<Iller>> getIller() async {
-    
-    final jsonData = await makeRequest('GET', '$baseUrl/iller');
-    // Liste olarak döndür
+    // API isteği yapmak için http paketini kullanın
+    final response = await http.get(Uri.parse('http://localhost:3000/iller'));
+    // Gelen JSON verisini ayrıştırın
+    final jsonData = json.decode(response.body);
+    // Liste olarak döndürün
     return List.generate(jsonData.length, (i) {
       return Iller.fromJson(jsonData[i]);
     });
   }
 
-  Future<List<Ilceler>> getIlceler() async {
+  Future<List<Ilceler>> getIlceler(int? ilId) async {
     // API isteği yaparak ilçeler verisini çek
-    final jsonData = await makeRequest('GET', 'http://localhost:3000/ilceler');
+    // Eğer il id'si null ise, tüm ilçeleri getir
+    // Eğer il id'si null değilse, ilgili ilçeleri getir
+    final response = await http.get(Uri.parse(
+        'http://localhost:3000/ilceler${ilId == null ? '' : '?sehirid=$ilId'}'));
     // Liste olarak döndür
+    final jsonData = json.decode(response.body);
     return List.generate(jsonData.length, (i) {
       // Her JSON elemanını Ilceler nesnesine dönüştür
       return Ilceler.fromJson(jsonData[i]);
