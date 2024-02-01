@@ -14,6 +14,9 @@ class AnaMenu extends StatefulWidget {
   _anaMenuState createState() => _anaMenuState();
 }
 
+String baseUrl = 'http://localhost:3000/';
+int defaultIl = 1;
+
 // ignore: camel_case_types
 class _anaMenuState extends State<AnaMenu> {
   List<CollapsibleItem>? _items;
@@ -26,8 +29,9 @@ class _anaMenuState extends State<AnaMenu> {
   final _userTelController = TextEditingController();
   final _userAdresController = TextEditingController();
   final _userEpostaController = TextEditingController();
- // int? _selectedIlce; // Seçili ilçe id'sini tutan bir değişken
+  // int? _selectedIlce; // Seçili ilçe id'sini tutan bir değişken
   int _selectedIl = 1;
+  int _selectedIlce = 0;
 
   late SharedPreferences prefs;
   /*
@@ -89,7 +93,8 @@ class _anaMenuState extends State<AnaMenu> {
 
           // _headline widget'ını form olarak güncelle
           setState(() => _headline = Form(
-                key: _formKey,
+              key: _formKey,
+              child: SingleChildScrollView(
                 child: Column(
                   children: [
                     const SizedBox(height: 10.0),
@@ -243,9 +248,8 @@ class _anaMenuState extends State<AnaMenu> {
                               future: getIller(),
                               builder: (context, snapshot) {
                                 if (snapshot.hasData) {
-                                  return DropdownButton<int>(
-                                    value:
-                                        _selectedIl, // value parametresine _selectedIl değişkenini verin
+                                  return DropdownButton<int?>(
+                                    value: _selectedIl,
                                     items: snapshot.data!.map((il) {
                                       return DropdownMenuItem(
                                         value: il.sehirid,
@@ -254,10 +258,10 @@ class _anaMenuState extends State<AnaMenu> {
                                     }).toList(),
                                     onChanged: (value) {
                                       setState(() {
-                                        _selectedIl =
-                                            value!; // onChanged fonksiyonunda _selectedIl değişkenini güncelleyin
+                                        _selectedIl = value!;
                                       });
                                     },
+                                    // hint parametresini 'Seçiniz' olarak belirtin
                                     hint: const Text('Seçiniz'),
                                   );
                                 } else if (snapshot.hasError) {
@@ -293,29 +297,43 @@ class _anaMenuState extends State<AnaMenu> {
                           child: Padding(
                             padding:
                                 const EdgeInsets.only(left: 50.0, right: 5.0),
-                            // TextFormField widget'ını kaldırın
-                            // DropdownButton widget'ını ekleyin
-                            child: DropdownButton<String>(
-                              // Seçilen ilin adını value parametresine verin
-                              value: il,
-                              // Veri tabanından gelen iller listesini items parametresine verin
-                              items: ilceler
-                                  ?.map(
-                                      (String ilce) => DropdownMenuItem<String>(
-                                            value: 'seçiniz',
-                                            child: Text(ilce),
-                                          ))
-                                  .toList(),
-                              // Seçilen il değiştiğinde, il değişkenine atama yapın
-                              onChanged: (value) {
-                                setState(() {
-                                  il = value!;
-                                });
+                            child: FutureBuilder<List<Ilceler>>(
+                              future: getIlceler(),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasData) {
+                                  return DropdownButton<int>(
+                                    value:
+                                        _selectedIlce, // value parametresine _selectedIlce değişkenini verin
+                                    items: snapshot.data!
+                                        .where((ilce) =>
+                                            ilce.sehirid ==
+                                            _selectedIl) // Seçilen ile göre ilçeleri filtrele
+                                        .map((ilce) {
+                                      return DropdownMenuItem(
+                                        value: ilce.ilceid,
+                                        child: Text(ilce.ilceadi!),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _selectedIlce =
+                                            value!; // onChanged fonksiyonunda _selectedIlce değişkenini güncelleyin
+                                      });
+                                    },
+                                    hint: const Text('Seçiniz'),
+                                  );
+                                } else if (snapshot.hasError) {
+                                  return Text(
+                                      'Bir hata oluştu: ${snapshot.error}');
+                                } else {
+                                  // Eğer Future değer henüz dönmediyse, CircularProgressIndicator widgetını döndür
+                                  return const CircularProgressIndicator();
+                                }
                               },
-                              hint: const Text('Seçiniz'),
                             ),
                           ),
                         ),
+                        // Diğer widgetlarınızı buraya ekleyebilirsiniz
                       ],
                     ),
                     const SizedBox(height: 10.0),
@@ -423,7 +441,7 @@ class _anaMenuState extends State<AnaMenu> {
                     ),
                   ],
                 ),
-              ));
+              )));
         },
       ),
       CollapsibleItem(
@@ -463,7 +481,7 @@ class _anaMenuState extends State<AnaMenu> {
       getUser();
       // Burada kullanıcının il id'sini alıp _selectedIl değişkenine ata
       setState(() {
-        _selectedIl = prefs.getInt('il_id') ?? 0;
+        _selectedIl = prefs.getInt('sehirid') ?? 0;
       });
     });
     _items = _generateItems;
@@ -493,12 +511,12 @@ class _anaMenuState extends State<AnaMenu> {
     }
   }
 
+// Bu fonksiyon, veritabanından iller listesini çeker ve Future olarak döndürür
   Future<List<Iller>> getIller() async {
-    // API isteği yaparak iller verisini çek
-    final jsonData = await makeRequest('GET', 'http://localhost:3000/iller');
+    
+    final jsonData = await makeRequest('GET', '$baseUrl/iller');
     // Liste olarak döndür
     return List.generate(jsonData.length, (i) {
-      // Her JSON elemanını Iller nesnesine dönüştür
       return Iller.fromJson(jsonData[i]);
     });
   }
